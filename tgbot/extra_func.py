@@ -65,7 +65,7 @@ def only_sariqdevchat():
         @functools.wraps(func)
         async def wrapped(message: Message):
             if str(message.chat.id).startswith('-100'):
-                if message.chat.username != settings.GROUP_USERNAME.replace('@', ''):
+                if message.chat.username != settings.GROUP_USERNAME:
                     await message.bot.leave_chat(message.chat.id)
                     return False
             return await func(message)

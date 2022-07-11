@@ -12,7 +12,9 @@ import html
 
 
 BOT_TOKEN = settings.BOT_TOKEN
-PRIME_CHANNELS = settings.PRIME_CHANNELS
+BOT_USERNAME = settings.BOT_USERNAME
+PRIME_CHANNEL = settings.PRIME_CHANNEL
+GROUP_USERNAME = settings.GROUP_USERNAME
 DEVELOPER_CHAT_ID = settings.DEVELOPER_CHAT_ID
 
 # Configure logging
@@ -38,7 +40,6 @@ async def setup_bot_commands(*args, **kwargs):
 
 
 async def send_to_developer(*args, **kwargs):
-    return
     return await bot.send_message(
         DEVELOPER_CHAT_ID,
         "Bot ishdan chiqdi"
@@ -71,7 +72,7 @@ In the group:
 async def command_handler(message: types.Message):
     sender_chat = message.reply_to_message.sender_chat
     if sender_chat is not None:
-        if sender_chat.username not in PRIME_CHANNELS:
+        if sender_chat.username not in (PRIME_CHANNEL, GROUP_USERNAME):
             await add_to_banned_channels(
                 channel_id=sender_chat.id,
                 channel_username=sender_chat.username,
@@ -99,12 +100,12 @@ async def command_handler(message: types.Message):
     user = message.from_user
     try:
         admins = await bot.get_chat_administrators(
-            chat_id=settings.GROUP_USERNAME
+            chat_id=GROUP_USERNAME
         )
     except ai_exc.ChatNotFound:
         return await message.answer('Internal server error')
     admins_usernames = list(map(lambda admin: admin.user.username, admins))
-    if settings.BOT_USERNAME.replace('@', '') not in admins_usernames:
+    if BOT_USERNAME.replace('@', '') not in admins_usernames:
         return await message.answer('Bot is not admin in the group')
     if user.username not in admins_usernames:
         return await message.answer('You are not admin in the group')
@@ -124,7 +125,7 @@ Example:
     try:
         if command == '/ban':
             await bot.ban_chat_sender_chat(
-                chat_id=settings.GROUP_USERNAME,
+                chat_id=GROUP_USERNAME,
                 sender_chat_id=int(sender_chat_id)
             )
             await add_to_banned_channels(
@@ -133,7 +134,7 @@ Example:
             await message.answer('Channel banned!')
         else:
             await bot.unban_chat_sender_chat(
-                chat_id=settings.GROUP_USERNAME,
+                chat_id=GROUP_USERNAME,
                 sender_chat_id=int(sender_chat_id)
             )
             await add_to_allowed_channels(

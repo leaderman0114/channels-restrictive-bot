@@ -17,6 +17,15 @@ ___
 pip install -r requirements
 ```
 ___
+### Create a file named ".env" and write the following inside it
+```
+BOT_TOKEN = "TOKEN"
+BOT_USERNAME = 'BOT_USERNAME'
+GROUP_USERNAME = "sariqdevchat"
+PRIME_CHANNEL = 'sariqdev'
+DEVELOPER_CHAT_ID = ...
+```
+___
 ### Execute database
 ```bash
 python manage.py makemigrations
