@@ -1,5 +1,8 @@
-from asgiref.sync import async_to_sync
+from asgiref.sync import sync_to_async
+from aiogram.types import Message
+from django.conf import settings
 from aiogram import Bot
+import functools
 import django
 import sys
 import os
@@ -11,31 +14,70 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 django.setup()
 # ---------  //  Setup django  --------------
 
-from django.conf import settings
 from tgbot.models import Channel
 
 
-BOT_TOKEN = settings.BOT_TOKEN
-
-bot = Bot(token=BOT_TOKEN)
-
-
-@async_to_sync
+@sync_to_async
 def add_to_banned_channels(channel_id: int, channel_username: str=None, channel_title: str=None):
-    result = Channel.ban(
-        channel_id=channel_id,
-        channel_username=channel_username,
-        channel_title=channel_title,
+    channels = Channel.objects.filter(chat_id=channel_id)
+    if channels.exists():
+        channel: Channel = channels.first()
+        channel.mode = Channel.BANNED
+        channel.save()
+        return True
+    channel = Channel.objects.create(
+        chat_id=channel_id,
+        username=channel_username,
+        title=channel_title,
+        mode=Channel.BANNED
     )
-    return result
+    return True
 
 
-@async_to_sync
+@sync_to_async
 def add_to_allowed_channels(channel_id: int, channel_username: str=None, channel_title: str=None):
-    result = Channel.allow(
-        channel_id=channel_id,
-        channel_username=channel_username,
-        channel_title=channel_title,
+    channels = Channel.objects.filter(chat_id=channel_id)
+    if channels.exists():
+        channel: Channel = channels.first()
+        channel.mode = Channel.ALLOWED
+        channel.save()
+        return True
+    channel = Channel.objects.create(
+        chat_id=channel_id,
+        username=channel_username,
+        title=channel_title,
+        mode=Channel.ALLOWED
     )
-    return result
+    return True
+    
 
+
+@sync_to_async
+def is_allowed(channel_id: int):
+    allowed_channels = Channel.objects.filter(mode=Channel.ALLOWED, chat_id=channel_id)
+    if allowed_channels.exists():
+        return True
+    return False
+
+
+def only_sariqdevchat():
+    def wrapper(func):
+        @functools.wraps(func)
+        async def wrapped(message: Message):
+            if str(message.chat.id).startswith('-100'):
+                if message.chat.username != settings.GROUP_USERNAME.replace('@', ''):
+                    await message.bot.leave_chat(message.chat.id)
+                    return False
+            return await func(message)
+        return wrapped
+    return wrapper
+
+
+async def is_admin(bot: Bot, chat_id: int):
+    admins = await bot.get_chat_administrators(
+        chat_id=settings.GROUP_USERNAME
+    )
+    admins_ids = list(map(lambda admin: admin.user.id, admins))
+    if chat_id not in admins_ids:
+        return False
+    return True
